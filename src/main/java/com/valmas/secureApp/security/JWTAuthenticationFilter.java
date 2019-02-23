@@ -2,6 +2,8 @@ package com.valmas.secureApp.security;
 
 import com.auth0.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.vavr.control.Option;
+import io.vavr.control.Try;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,28 +30,20 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
     private AuthenticationManager authenticationManager;
 
-    public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
+    JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
     }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest req,
                                                 HttpServletResponse res) throws AuthenticationException {
-        try {
-            AuthenticationRequest authReq = new ObjectMapper()
-                    .readValue(req.getInputStream(), AuthenticationRequest.class);
 
-            final String password = CipherUtils.decryptPassword("1qaz@WSX", authReq.getAlias(), authReq.getSignature());
-
-            return authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            authReq.getAlias(),
-                            password,
-                            new ArrayList<>())
-            );
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.of(req::getInputStream)
+                .mapTry(it -> new ObjectMapper().readValue(it, AuthenticationRequest.class))
+                .flatMap(it -> CipherUtils.decryptPassword("1qaz@WSX", it.getAlias(), it.getSignature())
+                        .map(pass -> authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(it.getAlias(), pass, new ArrayList<>()))))
+                .get();
     }
 
     @Override
@@ -58,10 +52,10 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                                             FilterChain chain,
                                             Authentication auth) throws IOException, ServletException {
 
-        String token = JWT.create()
+        Option.of(JWT.create()
                 .withSubject(((User) auth.getPrincipal()).getUsername())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .sign(HMAC512(SECRET.getBytes()));
-        res.addHeader(HEADER_STRING, TOKEN_PREFIX + token);
+                .sign(HMAC512(SECRET.getBytes()))
+        ).forEach(it -> res.addHeader(HEADER_STRING, TOKEN_PREFIX + it));
     }
 }

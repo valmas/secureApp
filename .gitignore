@@ -528,3 +528,6 @@ _book
 ### TortoiseGit template
 # Project-level settings
 *.orig
+
+#Project specifics
+*.p12

@@ -24,7 +24,7 @@ import static com.valmas.secureApp.security.SecurityConstants.*;
 
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
-    public JWTAuthorizationFilter(final @NonNull AuthenticationManager authManager) {
+    JWTAuthorizationFilter(final @NonNull AuthenticationManager authManager) {
         super(authManager);
     }
 
@@ -35,21 +35,21 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
         final UsernamePasswordAuthenticationToken token = Option.of(req.getHeader(HEADER_STRING))
                 .filter(it -> it.startsWith(TOKEN_PREFIX))
-                .map(it -> getAuthentication(req)).getOrNull();
+                .flatMap(it -> getAuthentication(req)).getOrNull();
 
         SecurityContextHolder.getContext().setAuthentication(token);
         chain.doFilter(req, res);
     }
 
-    @Nullable
-    private static UsernamePasswordAuthenticationToken getAuthentication(final @NonNull HttpServletRequest req) {
+    @NonNull
+    private static Option<UsernamePasswordAuthenticationToken> getAuthentication(final @NonNull HttpServletRequest req) {
 
         return Option.of(req.getHeader(HEADER_STRING))
                 .flatMap(it -> Try.of(() -> JWT.require(Algorithm.HMAC512(SECRET.getBytes()))
                         .build()
                         .verify(it.replace(TOKEN_PREFIX, ""))
                         .getSubject()).toOption()
-                ).map(user -> new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>())).getOrNull();
+                ).map(user -> new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>()));
     }
 
 }
