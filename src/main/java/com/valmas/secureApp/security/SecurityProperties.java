@@ -14,4 +14,6 @@ public class SecurityProperties {
     public String PASSWORD;
     @Value("${server.ssl.key-store-password}")
     public String KEYSTORE_PASSWORD;
+    @Value("${security.trust-store}")
+    public String TRUSTSTORE_PATH;
 }

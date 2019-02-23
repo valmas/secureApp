@@ -38,7 +38,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
         return Try.of(req::getInputStream)
                 .mapTry(it -> new ObjectMapper().readValue(it, AuthenticationRequest.class))
-                .flatMap(it -> CipherUtils.decryptPassword(sp.KEYSTORE_PASSWORD, it.getAlias(), it.getSignature())
+                .flatMap(it -> CipherUtils.decryptPassword(sp.KEYSTORE_PASSWORD, it.getAlias(), it.getSignature(), sp.TRUSTSTORE_PATH)
                         .map(pass -> authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(it.getAlias(), pass, new ArrayList<>()))))
                 .get();

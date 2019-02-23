@@ -530,5 +530,4 @@ _book
 *.orig
 
 #Project specifics
-*.p12
 security-prod.properties
