@@ -531,3 +531,4 @@ _book
 
 #Project specifics
 *.p12
+security-prod.properties

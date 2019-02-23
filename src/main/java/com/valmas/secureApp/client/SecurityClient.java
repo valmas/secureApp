@@ -16,8 +16,7 @@ import java.util.Base64;
 public class SecurityClient {
 
     private static final String LOGIN_ENDPOINT = "https://localhost:8085/login";
-    public static final String KEYSTORE_PATH = "/home/valmas/work/myWork/secureApp/clientKeystore.p12";
-    public static final String KEYSTORE_PASSWORD = "123456";
+    private static final String KEYSTORE_PATH = "/home/valmas/work/myWork/secureApp/clientKeystore.p12";
 
     private static PrivateKey loadPrivateKey(String keystorePassword, String alias) throws Exception {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
@@ -40,8 +39,11 @@ public class SecurityClient {
     }
 
     public static void main(String[] args) throws Exception {
-        final PrivateKey privateKey = loadPrivateKey(KEYSTORE_PASSWORD, "admin");
-        final byte[] encryptedPass = encrypt(privateKey, "1234");
+        final String KEY_PASS = args[0];
+        final String KEYSTORE_PASS = args[1];
+
+        final PrivateKey privateKey = loadPrivateKey(KEYSTORE_PASS, "admin");
+        final byte[] encryptedPass = encrypt(privateKey, KEY_PASS);
 
         final String base64 = Base64.getEncoder().encodeToString(encryptedPass);
         System.out.println("Enctypted: " + base64);
@@ -50,7 +52,7 @@ public class SecurityClient {
         String json = new ObjectMapper().writeValueAsString(req);
 
         System.setProperty("javax.net.ssl.trustStore", KEYSTORE_PATH);
-        System.setProperty("javax.net.ssl.trustStorePassword", KEYSTORE_PASSWORD);
+        System.setProperty("javax.net.ssl.trustStorePassword", KEYSTORE_PASS);
 
         invokeLogin(json);
     }

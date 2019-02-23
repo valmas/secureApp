@@ -24,8 +24,13 @@ import static com.valmas.secureApp.security.SecurityConstants.*;
 
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
-    JWTAuthorizationFilter(final @NonNull AuthenticationManager authManager) {
+    @NonNull
+    private SecurityProperties sp;
+
+    JWTAuthorizationFilter(@NonNull final AuthenticationManager authManager,
+                           @NonNull final SecurityProperties sp) {
         super(authManager);
+        this.sp = sp;
     }
 
     @Override
@@ -42,10 +47,10 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
     }
 
     @NonNull
-    private static Option<UsernamePasswordAuthenticationToken> getAuthentication(final @NonNull HttpServletRequest req) {
+    private Option<UsernamePasswordAuthenticationToken> getAuthentication(final @NonNull HttpServletRequest req) {
 
         return Option.of(req.getHeader(HEADER_STRING))
-                .flatMap(it -> Try.of(() -> JWT.require(Algorithm.HMAC512(SECRET.getBytes()))
+                .flatMap(it -> Try.of(() -> JWT.require(Algorithm.HMAC512(sp.JWT_SECRET.getBytes()))
                         .build()
                         .verify(it.replace(TOKEN_PREFIX, ""))
                         .getSubject()).toOption()

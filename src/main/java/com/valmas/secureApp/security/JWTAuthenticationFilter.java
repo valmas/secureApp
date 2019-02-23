@@ -4,7 +4,8 @@ import com.auth0.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -23,16 +24,13 @@ import java.util.Date;
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static com.valmas.secureApp.security.SecurityConstants.*;
 
+@RequiredArgsConstructor
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-    @Value("${server.ssl.key-store-password}")
-    private String keystorePassword;
-
+    @NonNull
     private AuthenticationManager authenticationManager;
-
-    JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
-    }
+    @NonNull
+    private SecurityProperties sp;
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest req,
@@ -40,7 +38,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
         return Try.of(req::getInputStream)
                 .mapTry(it -> new ObjectMapper().readValue(it, AuthenticationRequest.class))
-                .flatMap(it -> CipherUtils.decryptPassword("1qaz@WSX", it.getAlias(), it.getSignature())
+                .flatMap(it -> CipherUtils.decryptPassword(sp.KEYSTORE_PASSWORD, it.getAlias(), it.getSignature())
                         .map(pass -> authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(it.getAlias(), pass, new ArrayList<>()))))
                 .get();
@@ -55,7 +53,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         Option.of(JWT.create()
                 .withSubject(((User) auth.getPrincipal()).getUsername())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .sign(HMAC512(SECRET.getBytes()))
+                .sign(HMAC512(sp.JWT_SECRET.getBytes()))
         ).forEach(it -> res.addHeader(HEADER_STRING, TOKEN_PREFIX + it));
     }
 }
